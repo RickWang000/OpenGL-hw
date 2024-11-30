@@ -33,6 +33,7 @@ protected:
 
 private:
     GLuint loadCubemap(std::vector<std::string> faces);
+    void loadConfig();
     void setupShaders();
     void setupTextures();
     void setupVertices();
@@ -42,13 +43,18 @@ private:
     QOpenGLShaderProgram skyboxShaderProgram;
     QOpenGLShaderProgram cubeShaderProgram;
 
-    GLuint VBO, VAO, EBO, texture1, texture2;
     GLuint skyboxVAO, skyboxVBO, skyboxTexture;
-    GLuint cube1VAO, cube1VBO;
-    GLuint cube2VAO, cube2VBO;
 
-    QVector3D cubePosition;
-    QVector3D cubeVelocity;
+    GLuint cube1VAO, cube1VBO;
+    float cube1Size;
+    QVector3D cube1Position, cube1Rotation, cube1Color;
+
+    GLuint cube2VAO, cube2VBO;
+    float cube2Size;
+    QVector3D cube2Position, cube2Rotation, cube2Color;
+
+    GLuint VBO, VAO, EBO, texture1, texture2;
+    QVector3D cubePosition, cubeVelocity;
     float deltaTime;
     QElapsedTimer timer;
     QTimer updateTimer;

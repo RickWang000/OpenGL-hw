@@ -15,5 +15,7 @@
         <file>shaders/skybox.frag</file>
         <file>shaders/cube.vert</file>
         <file>shaders/cube.frag</file>
+
+        <file>config.json</file>
     </qresource>
 </RCC>

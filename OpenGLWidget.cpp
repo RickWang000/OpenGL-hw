@@ -1,6 +1,54 @@
 #include "OpenGLWidget.h"
 #include <QDebug>
 #include <QTimer>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+void CoreFunctionWidget::loadConfig() {
+    QFile file(":/config.json");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Failed to open config file!";
+        return;
+    }
+
+    QByteArray data = file.readAll();
+    QJsonDocument doc(QJsonDocument::fromJson(data));
+    QJsonObject json = doc.object();
+
+    // 读取 cube1 配置
+    QJsonObject cube1 = json["cube1"].toObject();
+    cube1Size = cube1["size"].toDouble();
+    cube1Position = QVector3D(cube1["position"].toArray()[0].toDouble(),
+                              cube1["position"].toArray()[1].toDouble(),
+                              cube1["position"].toArray()[2].toDouble());
+    cube1Rotation = QVector3D(cube1["rotation"].toArray()[0].toDouble(),
+                              cube1["rotation"].toArray()[1].toDouble(),
+                              cube1["rotation"].toArray()[2].toDouble());
+    cube1Color = QVector3D(cube1["color"].toArray()[0].toDouble(),
+                           cube1["color"].toArray()[1].toDouble(),
+                           cube1["color"].toArray()[2].toDouble());
+
+    // 读取 cube2 配置
+    QJsonObject cube2 = json["cube2"].toObject();
+    cube2Size = cube2["size"].toDouble();
+    cube2Position = QVector3D(cube2["position"].toArray()[0].toDouble(),
+                              cube2["position"].toArray()[1].toDouble(),
+                              cube2["position"].toArray()[2].toDouble());
+    cube2Rotation = QVector3D(cube2["rotation"].toArray()[0].toDouble(),
+                              cube2["rotation"].toArray()[1].toDouble(),
+                              cube2["rotation"].toArray()[2].toDouble());
+    cube2Color = QVector3D(cube2["color"].toArray()[0].toDouble(),
+                           cube2["color"].toArray()[1].toDouble(),
+                           cube2["color"].toArray()[2].toDouble());
+
+    // 读取 cube 速度
+    QJsonObject cube = json["cube"].toObject();
+    cubeVelocity = QVector3D(cube["velocity"].toArray()[0].toDouble(),
+                                cube["velocity"].toArray()[1].toDouble(),
+                                cube["velocity"].toArray()[2].toDouble());
+}
 
 CoreFunctionWidget::CoreFunctionWidget(QWidget* parent) : QOpenGLWidget(parent)
 {
@@ -25,13 +73,14 @@ void CoreFunctionWidget::initializeGL() {
 
     glEnable(GL_DEPTH_TEST);
     this->cam.set_initial_distance_ratio(8.0);
+    
+    loadConfig(); // 加载配置文件
 
     setupShaders();
     setupTextures();
     setupVertices();
     
     timer.start(); // 初始化计时器
-    cubeVelocity = QVector3D(5.0f, 3.5f, 7.5f); // 初始化速度
 }
 
 void CoreFunctionWidget::setupShaders() {
@@ -306,10 +355,10 @@ void CoreFunctionWidget::setupVertices() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // 设置立方体1
-    setupCube(cube1VAO, cube1VBO, 1.0f, QVector3D(1.0f, 0.0f, 0.0f)); // 红色立方体
+    setupCube(cube1VAO, cube1VBO, cube1Size, cube1Color);
 
     // 设置立方体2
-    setupCube(cube2VAO, cube2VBO, 0.5f, QVector3D(0.0f, 0.0f, 1.0f)); // 绿色立方体
+    setupCube(cube2VAO, cube2VBO, cube2Size, cube2Color);
 }
 
 void CoreFunctionWidget::setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color) {
@@ -435,9 +484,10 @@ void CoreFunctionWidget::paintGL() {
     cubeShaderProgram.bind();
     {
         QMatrix4x4 model;
-        model.translate(QVector3D(-3.0f, 0.0f, 0.0f));
-        // model.rotate(45.0f, QVector3D(1.0f, 0.0f, 0.0f));
-        // model.rotate(45.0f, QVector3D(0.0f, 1.0f, 0.0f));
+        model.translate(cube1Position);
+        model.rotate(cube1Rotation.x(), QVector3D(1.0f, 0.0f, 0.0f));
+        model.rotate(cube1Rotation.y(), QVector3D(0.0f, 1.0f, 0.0f));
+        model.rotate(cube1Rotation.z(), QVector3D(0.0f, 0.0f, 1.0f));
         glUniformMatrix4fv(cubeShaderProgram.uniformLocation("model"), 1, GL_FALSE, model.data());
         QMatrix4x4 view = this->cam.get_camera_matrix();
         glUniformMatrix4fv(cubeShaderProgram.uniformLocation("view"), 1, GL_FALSE, view.data());
@@ -456,9 +506,10 @@ void CoreFunctionWidget::paintGL() {
     cubeShaderProgram.bind();
     {
         QMatrix4x4 model;
-        model.translate(QVector3D(2.0f, 0.0f, 0.0f));
-        // model.rotate(45.0f, QVector3D(1.0f, 0.0f, 0.0f));
-        // model.rotate(45.0f, QVector3D(0.0f, 1.0f, 0.0f));
+        model.translate(cube2Position);
+        model.rotate(cube2Rotation.x(), QVector3D(1.0f, 0.0f, 0.0f));
+        model.rotate(cube2Rotation.y(), QVector3D(0.0f, 1.0f, 0.0f));
+        model.rotate(cube2Rotation.z(), QVector3D(0.0f, 0.0f, 1.0f));
         glUniformMatrix4fv(cubeShaderProgram.uniformLocation("model"), 1, GL_FALSE, model.data());
         QMatrix4x4 view = this->cam.get_camera_matrix();
         glUniformMatrix4fv(cubeShaderProgram.uniformLocation("view"), 1, GL_FALSE, view.data());
