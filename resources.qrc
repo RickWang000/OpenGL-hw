@@ -13,5 +13,7 @@
         <file>textures.vert</file>
         <file>shaders/skybox.vert</file>
         <file>shaders/skybox.frag</file>
+        <file>shaders/cube.vert</file>
+        <file>shaders/cube.frag</file>
     </qresource>
 </RCC>

@@ -14,73 +14,12 @@ CoreFunctionWidget::~CoreFunctionWidget()
     glDeleteBuffers(1, &EBO);
 }
 
-void CoreFunctionWidget::keyPressEvent(QKeyEvent* e) {
-    if (e->key() == Qt::Key_A) {
-        this->cam.translate_left(-0.2);
-    }
-    else if (e->key() == Qt::Key_D) {
-        this->cam.translate_left(0.2);
-    }
-    else if (e->key() == Qt::Key_W) {
-        this->cam.translate_up(0.2);
-    }
-    else if (e->key() == Qt::Key_S) {
-        this->cam.translate_up(-0.2);
-    }
-    else if (e->key() == Qt::Key_F) {
-        this->cam.translate_forward(0.2);
-    }
-    else if (e->key() == Qt::Key_B) {
-        this->cam.translate_forward(-0.2);;
-    }
-    else if (e->key() == Qt::Key_Z) {
-        this->cam.zoom_near(0.1);
-    }
-    else if (e->key() == Qt::Key_X) {
-        this->cam.zoom_near(-0.1);
-    }
-    else if (e->key() == Qt::Key_T) {
-        this->use_perspective = !this->use_perspective;
-    }
-
-    emit projection_change();
-
-    update();
-}
-
-GLuint CoreFunctionWidget::loadCubemap(std::vector<std::string> faces) {
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-
-    int width, height, nrChannels;
-    for (unsigned int i = 0; i < faces.size(); i++)
-    {
-        QImage img = QImage(faces[i].c_str()).convertToFormat(QImage::Format_RGB888);
-        if (!img.isNull())
-        {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, img.width(), img.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, img.bits());
-        }
-        else
-        {
-            qDebug() << "Cubemap texture failed to load at path: " << faces[i].c_str();
-        }
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    return textureID;
-}
 
 void CoreFunctionWidget::initializeGL() {
     this->initializeOpenGLFunctions();
 
     glEnable(GL_DEPTH_TEST);
-    this->cam.set_initial_distance_ratio(3.0);
+    this->cam.set_initial_distance_ratio(4.0);
 
     setupShaders();
     setupTextures();
@@ -123,6 +62,24 @@ void CoreFunctionWidget::setupShaders() {
     if (!success) {
         qDebug() << "skyboxShaderProgram link failed!" << skyboxShaderProgram.log();
     }
+
+    // 初始化方块着色器
+    success = cubeShaderProgram.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/cube.vert");
+    if (!success) {
+        qDebug() << "cubeShaderProgram addShaderFromSourceFile failed!" << cubeShaderProgram.log();
+        return;
+    }
+
+    success = cubeShaderProgram.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/cube.frag");
+    if (!success) {
+        qDebug() << "cubeShaderProgram addShaderFromSourceFile failed!" << cubeShaderProgram.log();
+        return;
+    }
+
+    success = cubeShaderProgram.link();
+    if (!success) {
+        qDebug() << "cubeShaderProgram link failed!" << cubeShaderProgram.log();
+    }
 }
 
 void CoreFunctionWidget::setupTextures() {
@@ -138,7 +95,7 @@ void CoreFunctionWidget::setupTextures() {
     };
     skyboxTexture = loadCubemap(faces);
 
-    // 加载纹理
+    // 加载盒子纹理
     // texture 1
     // ---------
     glGenTextures(1, &texture1);
@@ -179,6 +136,34 @@ void CoreFunctionWidget::setupTextures() {
     glUniform1i(shaderProgram.uniformLocation("texture1"), 0);
     glUniform1i(shaderProgram.uniformLocation("texture2"), 1);
     shaderProgram.release();
+}
+
+GLuint CoreFunctionWidget::loadCubemap(std::vector<std::string> faces) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        QImage img = QImage(faces[i].c_str()).convertToFormat(QImage::Format_RGB888);
+        if (!img.isNull())
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, img.width(), img.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, img.bits());
+        }
+        else
+        {
+            qDebug() << "Cubemap texture failed to load at path: " << faces[i].c_str();
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }
 
 void CoreFunctionWidget::setupVertices() {
@@ -311,6 +296,54 @@ void CoreFunctionWidget::setupVertices() {
     glBindVertexArray(0);   //取消VAO绑定
     glBindBuffer(GL_ARRAY_BUFFER, 0);//取消VBO的绑定
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // 设置立方体1
+    setupCube(cube1VAO, cube1VBO, 1.0f, QVector3D(1.0f, 0.0f, 0.0f)); // 红色立方体
+
+    // 设置立方体2
+    setupCube(cube2VAO, cube2VBO, 0.5f, QVector3D(0.0f, 0.0f, 1.0f)); // 绿色立方体
+}
+
+void CoreFunctionWidget::setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color) {
+    float vertices[] = {
+        // positions          // colors
+        -size, -size, -size,  color.x(), color.y(), color.z(),
+         size, -size, -size,  color.x(), color.y(), color.z(),
+         size,  size, -size,  color.x(), color.y(), color.z(),
+        -size,  size, -size,  color.x(), color.y(), color.z(),
+        -size, -size,  size,  color.x(), color.y(), color.z(),
+         size, -size,  size,  color.x(), color.y(), color.z(),
+         size,  size,  size,  color.x(), color.y(), color.z(),
+        -size,  size,  size,  color.x(), color.y(), color.z()
+    };
+
+    unsigned int indices[] = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        0, 1, 5, 5, 4, 0,
+        2, 3, 7, 7, 6, 2,
+        0, 3, 7, 7, 4, 0,
+        1, 2, 6, 6, 5, 1
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
 }
 
 
@@ -374,6 +407,83 @@ void CoreFunctionWidget::paintGL() {
     }
     skyboxShaderProgram.release();
     glDepthFunc(GL_LESS); // 重置深度函数
+
+    // 渲染立方体1
+    cubeShaderProgram.bind();
+    {
+        QMatrix4x4 model;
+        model.translate(QVector3D(-3.0f, 0.0f, 0.0f));
+        // model.rotate(45.0f, QVector3D(1.0f, 0.0f, 0.0f));
+        // model.rotate(45.0f, QVector3D(0.0f, 1.0f, 0.0f));
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("model"), 1, GL_FALSE, model.data());
+        QMatrix4x4 view = this->cam.get_camera_matrix();
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("view"), 1, GL_FALSE, view.data());
+        QMatrix4x4 projection;
+        if (this->use_perspective)
+            projection.perspective(90, 1.0, 0.01, 50.0);
+        else
+            projection.ortho(-2, 2, -2, 2, 0.01, 50.0);
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("projection"), 1, GL_FALSE, projection.data());
+        glBindVertexArray(cube1VAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    }
+    cubeShaderProgram.release();
+
+    // 渲染立方体2
+    cubeShaderProgram.bind();
+    {
+        QMatrix4x4 model;
+        model.translate(QVector3D(2.0f, 0.0f, 0.0f));
+        // model.rotate(45.0f, QVector3D(1.0f, 0.0f, 0.0f));
+        // model.rotate(45.0f, QVector3D(0.0f, 1.0f, 0.0f));
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("model"), 1, GL_FALSE, model.data());
+        QMatrix4x4 view = this->cam.get_camera_matrix();
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("view"), 1, GL_FALSE, view.data());
+        QMatrix4x4 projection;
+        if (this->use_perspective)
+            projection.perspective(90, 1.0, 0.01, 50.0);
+        else
+            projection.ortho(-2, 2, -2, 2, 0.01, 50.0);
+        glUniformMatrix4fv(cubeShaderProgram.uniformLocation("projection"), 1, GL_FALSE, projection.data());
+        glBindVertexArray(cube2VAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    }
+}
+
+
+
+void CoreFunctionWidget::keyPressEvent(QKeyEvent* e) {
+    if (e->key() == Qt::Key_A) {
+        this->cam.translate_left(-0.2);
+    }
+    else if (e->key() == Qt::Key_D) {
+        this->cam.translate_left(0.2);
+    }
+    else if (e->key() == Qt::Key_W) {
+        this->cam.translate_up(0.2);
+    }
+    else if (e->key() == Qt::Key_S) {
+        this->cam.translate_up(-0.2);
+    }
+    else if (e->key() == Qt::Key_F) {
+        this->cam.translate_forward(0.2);
+    }
+    else if (e->key() == Qt::Key_B) {
+        this->cam.translate_forward(-0.2);;
+    }
+    else if (e->key() == Qt::Key_Z) {
+        this->cam.zoom_near(0.1);
+    }
+    else if (e->key() == Qt::Key_X) {
+        this->cam.zoom_near(-0.1);
+    }
+    else if (e->key() == Qt::Key_T) {
+        this->use_perspective = !this->use_perspective;
+    }
+
+    emit projection_change();
+
+    update();
 }
 
 void CoreFunctionWidget::mousePressEvent(QMouseEvent* e) {

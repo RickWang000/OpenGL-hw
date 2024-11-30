@@ -35,12 +35,16 @@ private:
     void setupShaders();
     void setupTextures();
     void setupVertices();
+    void setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color);
 
     QOpenGLShaderProgram shaderProgram;
     QOpenGLShaderProgram skyboxShaderProgram;
+    QOpenGLShaderProgram cubeShaderProgram;
 
     GLuint VBO, VAO, EBO, texture1, texture2;
     GLuint skyboxVAO, skyboxVBO, skyboxTexture;
+    GLuint cube1VAO, cube1VBO;
+    GLuint cube2VAO, cube2VBO;
 
     Camera cam;
 public:
