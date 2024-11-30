@@ -12,6 +12,17 @@
 #include <QTimer>
 #include "Camera.h"
 
+struct AABB {
+    QVector3D min;
+    QVector3D max;
+};
+
+enum CollisionFace {
+    NO_COLLISION,
+    COLLISION_X,
+    COLLISION_Y,
+    COLLISION_Z
+};
 
 class CoreFunctionWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core
 {
@@ -32,12 +43,15 @@ protected:
     int mouse_x, mouse_y;
 
 private:
-    GLuint loadCubemap(std::vector<std::string> faces);
-    void loadConfig();
     void setupShaders();
     void setupTextures();
     void setupVertices();
     void setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color);
+
+    GLuint loadCubemap(std::vector<std::string> faces);
+    void loadConfig();
+    AABB calculateAABB(const QVector3D& position, float size);
+    CollisionFace checkCollision(const AABB& a, const AABB& b);
 
     QOpenGLShaderProgram shaderProgram;
     QOpenGLShaderProgram skyboxShaderProgram;
@@ -48,16 +62,24 @@ private:
     GLuint cube1VAO, cube1VBO;
     float cube1Size;
     QVector3D cube1Position, cube1Rotation, cube1Color;
+    AABB cube1AABB;
 
     GLuint cube2VAO, cube2VBO;
     float cube2Size;
     QVector3D cube2Position, cube2Rotation, cube2Color;
+    AABB cube2AABB;
 
-    GLuint VBO, VAO, EBO, texture1, texture2;
+    GLuint cubeVBO, cubeVAO, texture1, texture2;
     QVector3D cubePosition, cubeVelocity;
+    AABB cubeAABB;
+
+    GLuint EBO;
+    
     float deltaTime;
     QElapsedTimer timer;
     QTimer updateTimer;
+
+    AABB boundaryAABB;
 
     Camera cam;
 public:

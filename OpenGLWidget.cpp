@@ -62,8 +62,8 @@ CoreFunctionWidget::CoreFunctionWidget(QWidget* parent) : QOpenGLWidget(parent)
 
 CoreFunctionWidget::~CoreFunctionWidget()
 {
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteBuffers(1, &cubeVBO);
     glDeleteBuffers(1, &EBO);
 }
 
@@ -81,6 +81,10 @@ void CoreFunctionWidget::initializeGL() {
     setupVertices();
     
     timer.start(); // 初始化计时器
+
+    // 设置边界 AABB
+    boundaryAABB.min = QVector3D(-5.0f, -5.0f, -5.0f);
+    boundaryAABB.max = QVector3D(5.0f, 5.0f, 5.0f);
 }
 
 void CoreFunctionWidget::setupShaders() {
@@ -328,13 +332,13 @@ void CoreFunctionWidget::setupVertices() {
         22, 23, 20,
     };
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
     glGenBuffers(1, &EBO);
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
+    glBindVertexArray(cubeVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -362,16 +366,17 @@ void CoreFunctionWidget::setupVertices() {
 }
 
 void CoreFunctionWidget::setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color) {
+    float vertSize = size/2;
     float vertices[] = {
         // positions          // colors
-        -size, -size, -size,  color.x(), color.y(), color.z(),
-         size, -size, -size,  color.x(), color.y(), color.z(),
-         size,  size, -size,  color.x(), color.y(), color.z(),
-        -size,  size, -size,  color.x(), color.y(), color.z(),
-        -size, -size,  size,  color.x(), color.y(), color.z(),
-         size, -size,  size,  color.x(), color.y(), color.z(),
-         size,  size,  size,  color.x(), color.y(), color.z(),
-        -size,  size,  size,  color.x(), color.y(), color.z()
+        -vertSize, -vertSize, -vertSize,  color.x(), color.y(), color.z(),
+         vertSize, -vertSize, -vertSize,  color.x(), color.y(), color.z(),
+         vertSize,  vertSize, -vertSize,  color.x(), color.y(), color.z(),
+        -vertSize,  vertSize, -vertSize,  color.x(), color.y(), color.z(),
+        -vertSize, -vertSize,  vertSize,  color.x(), color.y(), color.z(),
+         vertSize, -vertSize,  vertSize,  color.x(), color.y(), color.z(),
+         vertSize,  vertSize,  vertSize,  color.x(), color.y(), color.z(),
+        -vertSize,  vertSize,  vertSize,  color.x(), color.y(), color.z()
     };
 
     unsigned int indices[] = {
@@ -421,11 +426,68 @@ void CoreFunctionWidget::paintGL() {
     // 更新立方体位置
     cubePosition += cubeVelocity * deltaTime;
 
-    // 检查边界并反转速度
-    if (cubePosition.x() > 5.0f || cubePosition.x() < -5.0f) cubeVelocity.setX(-cubeVelocity.x());
-    if (cubePosition.y() > 5.0f || cubePosition.y() < -5.0f) cubeVelocity.setY(-cubeVelocity.y());
-    if (cubePosition.z() > 5.0f || cubePosition.z() < -5.0f) cubeVelocity.setZ(-cubeVelocity.z());
+    // 计算立方体的 AABB
+    AABB cubeAABB = calculateAABB(cubePosition, 1.0f); // 动态立方体的大小为 1.0
+    AABB cube1AABB = calculateAABB(cube1Position, cube1Size);
+    AABB cube2AABB = calculateAABB(cube2Position, cube2Size);
 
+    // 检查动态立方体与静态立方体1的碰撞
+    CollisionFace collisionFace = checkCollision(cubeAABB, cube1AABB);
+    if (collisionFace != NO_COLLISION) {
+        qDebug() << "Collision with cube1 detected!";
+        qDebug() << "Dynamic Cube Position: " << cubePosition << ", Size: 1.0";
+        qDebug() << "Cube1 Position: " << cube1Position << ", Size: " << cube1Size;
+        qDebug() << "Collision Box A: min(" << cubeAABB.min.x() << "," << cubeAABB.min.y() << "," << cubeAABB.min.z() << "), max(" << cubeAABB.max.x() << "," << cubeAABB.max.y() << "," << cubeAABB.max.z() << ")";
+        qDebug() << "Collision Box B: min(" << cube1AABB.min.x() << "," << cube1AABB.min.y() << "," << cube1AABB.min.z() << "), max(" << cube1AABB.max.x() << "," << cube1AABB.max.y() << "," << cube1AABB.max.z() << ")";
+        if (collisionFace == COLLISION_X) {
+            cubeVelocity.setX(-cubeVelocity.x());
+        } else if (collisionFace == COLLISION_Y) {
+            cubeVelocity.setY(-cubeVelocity.y());
+        } else if (collisionFace == COLLISION_Z) {
+            cubeVelocity.setZ(-cubeVelocity.z());
+        }
+        // 调整位置以避免下一帧再次检测到碰撞
+        cubePosition += cubeVelocity * deltaTime;
+    }
+
+    // 检查动态立方体与静态立方体2的碰撞
+    collisionFace = checkCollision(cubeAABB, cube2AABB);
+    if (collisionFace != NO_COLLISION) {
+        qDebug() << "Collision with cube2 detected!";
+        qDebug() << "Dynamic Cube Position: " << cubePosition << ", Size: 1.0";
+        qDebug() << "Cube2 Position: " << cube2Position << ", Size: " << cube2Size;
+        qDebug() << "Collision Box A: min(" << cubeAABB.min.x() << "," << cubeAABB.min.y() << "," << cubeAABB.min.z() << "), max(" << cubeAABB.max.x() << "," << cubeAABB.max.y() << "," << cubeAABB.max.z() << ")";
+        qDebug() << "Collision Box B: min(" << cube2AABB.min.x() << "," << cube2AABB.min.y() << "," << cube2AABB.min.z() << "), max(" << cube2AABB.max.x() << "," << cube2AABB.max.y() << "," << cube2AABB.max.z() << ")";
+        if (collisionFace == COLLISION_X) {
+            cubeVelocity.setX(-cubeVelocity.x());
+        } else if (collisionFace == COLLISION_Y) {
+            cubeVelocity.setY(-cubeVelocity.y());
+        } else if (collisionFace == COLLISION_Z) {
+            cubeVelocity.setZ(-cubeVelocity.z());
+        }
+        // 调整位置以避免下一帧再次检测到碰撞
+        cubePosition += cubeVelocity * deltaTime;
+    }
+
+     // 检查与边界的碰撞
+    if (cubeAABB.min.x() < boundaryAABB.min.x() || cubeAABB.max.x() > boundaryAABB.max.x()) {
+        qDebug() << "Collision with boundary detected on X axis!";
+        cubeVelocity.setX(-cubeVelocity.x());
+        // 调整位置以避免下一帧再次检测到碰撞
+        cubePosition.setX(cubePosition.x() + cubeVelocity.x() * deltaTime);
+    }
+    if (cubeAABB.min.y() < boundaryAABB.min.y() || cubeAABB.max.y() > boundaryAABB.max.y()) {
+        qDebug() << "Collision with boundary detected on Y axis!";
+        cubeVelocity.setY(-cubeVelocity.y());
+        // 调整位置以避免下一帧再次检测到碰撞
+        cubePosition.setY(cubePosition.y() + cubeVelocity.y() * deltaTime);
+    }
+    if (cubeAABB.min.z() < boundaryAABB.min.z() || cubeAABB.max.z() > boundaryAABB.max.z()) {
+        qDebug() << "Collision with boundary detected on Z axis!";
+        cubeVelocity.setZ(-cubeVelocity.z());
+        // 调整位置以避免下一帧再次检测到碰撞
+        cubePosition.setZ(cubePosition.z() + cubeVelocity.z() * deltaTime);
+    }
 
     shaderProgram.bind();
     {
@@ -436,7 +498,7 @@ void CoreFunctionWidget::paintGL() {
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         // render container
-        glBindVertexArray(VAO);
+        glBindVertexArray(cubeVAO);
         // set uniform mats
         QMatrix4x4 model_mat; // identity
         model_mat.translate(cubePosition); // 使用更新后的位置
@@ -525,6 +587,36 @@ void CoreFunctionWidget::paintGL() {
 }
 
 
+AABB CoreFunctionWidget::calculateAABB(const QVector3D& position, float size) {
+    AABB aabb;
+    aabb.min = position - QVector3D(size, size, size) * 0.5f;
+    aabb.max = position + QVector3D(size, size, size) * 0.5f;
+    return aabb;
+}
+
+CollisionFace CoreFunctionWidget::checkCollision(const AABB& a, const AABB& b) {
+    bool collisionX = (a.min.x() <= b.max.x() && a.max.x() >= b.min.x());
+    bool collisionY = (a.min.y() <= b.max.y() && a.max.y() >= b.min.y());
+    bool collisionZ = (a.min.z() <= b.max.z() && a.max.z() >= b.min.z());
+
+    if (collisionX && collisionY && collisionZ) {
+        // Determine which face the collision occurred on
+        float overlapX = std::min(a.max.x() - b.min.x(), b.max.x() - a.min.x());
+        float overlapY = std::min(a.max.y() - b.min.y(), b.max.y() - a.min.y());
+        float overlapZ = std::min(a.max.z() - b.min.z(), b.max.z() - a.min.z());
+
+        if (overlapX < overlapY && overlapX < overlapZ) {
+            return COLLISION_X;
+        } else if (overlapY < overlapX && overlapY < overlapZ) {
+            return COLLISION_Y;
+        } else {
+            return COLLISION_Z;
+        }
+    }
+
+    return NO_COLLISION;
+}
+
 
 void CoreFunctionWidget::keyPressEvent(QKeyEvent* e) {
     if (e->key() == Qt::Key_A) {
@@ -594,3 +686,4 @@ void CoreFunctionWidget::mouseMoveEvent(QMouseEvent* e) {
 
     update();
 }
+
