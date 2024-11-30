@@ -29,10 +29,18 @@ protected:
     void mousePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
     int mouse_x, mouse_y;
+
 private:
+    GLuint loadCubemap(std::vector<std::string> faces);
+    void setupShaders();
+    void setupTextures();
+    void setupVertices();
+
     QOpenGLShaderProgram shaderProgram;
+    QOpenGLShaderProgram skyboxShaderProgram;
 
     GLuint VBO, VAO, EBO, texture1, texture2;
+    GLuint skyboxVAO, skyboxVBO, skyboxTexture;
 
     Camera cam;
 public:

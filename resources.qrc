@@ -2,7 +2,16 @@
     <qresource prefix="/">
         <file>awesomeface.png</file>
         <file>container.jpg</file>
+        <file>res/skybox/right.jpg</file>
+        <file>res/skybox/left.jpg</file>
+        <file>res/skybox/top.jpg</file>
+        <file>res/skybox/bottom.jpg</file>
+        <file>res/skybox/front.jpg</file>
+        <file>res/skybox/back.jpg</file>
+        
         <file>textures.frag</file>
         <file>textures.vert</file>
+        <file>shaders/skybox.vert</file>
+        <file>shaders/skybox.frag</file>
     </qresource>
 </RCC>
