@@ -48,6 +48,17 @@ void CoreFunctionWidget::loadConfig() {
     cubeVelocity = QVector3D(cube["velocity"].toArray()[0].toDouble(),
                                 cube["velocity"].toArray()[1].toDouble(),
                                 cube["velocity"].toArray()[2].toDouble());
+
+    // 读取滤镜配置
+    QString filter = json["filter"].toString();
+    if (filter == "invert") {
+        currentFilter = Filter::Invert;
+    } else if (filter == "gray") {
+        currentFilter = Filter::Gray;
+    } else {
+        currentFilter = Filter::None;
+    }
+
 }
 
 CoreFunctionWidget::CoreFunctionWidget(QWidget* parent) : QOpenGLWidget(parent)
@@ -79,6 +90,7 @@ void CoreFunctionWidget::initializeGL() {
     setupShaders();
     setupTextures();
     setupVertices();
+    setupFrameBuffer();
     
     timer.start(); // 初始化计时器
 
@@ -89,13 +101,13 @@ void CoreFunctionWidget::initializeGL() {
 
 void CoreFunctionWidget::setupShaders() {
     // 初始化着色器
-    bool success = shaderProgram.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/textures.vert");
+    bool success = shaderProgram.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/textures.vert");
     if (!success) {
         qDebug() << "shaderProgram addShaderFromSourceFile failed!" << shaderProgram.log();
         return;
     }
 
-    success = shaderProgram.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/textures.frag");
+    success = shaderProgram.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/textures.frag");
     if (!success) {
         qDebug() << "shaderProgram addShaderFromSourceFile failed!" << shaderProgram.log();
         return;
@@ -141,6 +153,38 @@ void CoreFunctionWidget::setupShaders() {
     if (!success) {
         qDebug() << "cubeShaderProgram link failed!" << cubeShaderProgram.log();
     }
+
+    // 初始化反色着色器
+    success = invertShaderProgram.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/invert.vert");
+    if (!success) {
+        qDebug() << "invertShaderProgram addShaderFromSourceFile failed!" << invertShaderProgram.log();
+        return;
+    }
+    success = invertShaderProgram.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/invert.frag");
+    if (!success) {
+        qDebug() << "invertShaderProgram addShaderFromSourceFile failed!" << invertShaderProgram.log();
+        return;
+    }
+    success = invertShaderProgram.link();
+    if (!success) {
+        qDebug() << "invertShaderProgram link failed!" << invertShaderProgram.log();
+    }
+
+    // 初始化灰度着色器
+    success = grayShaderProgram.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/invert.vert");
+    if (!success) {
+        qDebug() << "grayShaderProgram addShaderFromSourceFile failed!" << grayShaderProgram.log();
+        return;
+    }
+    success = grayShaderProgram.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/gray.frag");
+    if (!success) {
+        qDebug() << "grayShaderProgram addShaderFromSourceFile failed!" << grayShaderProgram.log();
+        return;
+    }
+    success = grayShaderProgram.link();
+    if (!success) {
+        qDebug() << "grayShaderProgram link failed!" << grayShaderProgram.log();
+    }
 }
 
 void CoreFunctionWidget::setupTextures() {
@@ -168,7 +212,7 @@ void CoreFunctionWidget::setupTextures() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
-    QImage img1 = QImage(":/container.jpg").convertToFormat(QImage::Format_RGB888);
+    QImage img1 = QImage(":/res/cube/container.jpg").convertToFormat(QImage::Format_RGB888);
     if (!img1.isNull()) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img1.width(), img1.height(), 0, GL_RGB, GL_UNSIGNED_BYTE, img1.bits());
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -185,7 +229,7 @@ void CoreFunctionWidget::setupTextures() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
-    QImage img2 = QImage(":/awesomeface.png").convertToFormat(QImage::Format_RGBA8888).mirrored(true, true);
+    QImage img2 = QImage(":/res/cube/awesomeface.png").convertToFormat(QImage::Format_RGBA8888).mirrored(true, true);
     if (!img2.isNull()) {
         // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img2.width(), img2.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img2.bits());
@@ -363,6 +407,31 @@ void CoreFunctionWidget::setupVertices() {
 
     // 设置立方体2
     setupCube(cube2VAO, cube2VBO, cube2Size, cube2Color);
+
+    // 设置平面
+    
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+
 }
 
 void CoreFunctionWidget::setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color) {
@@ -409,12 +478,47 @@ void CoreFunctionWidget::setupCube(GLuint &VAO, GLuint &VBO, float size, QVector
 }
 
 
+void CoreFunctionWidget::setupFrameBuffer() {
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // 创建颜色附件纹理
+    glGenTextures(1, &textureColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+    // 创建渲染缓冲对象用于深度和模板测试
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height());
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        qDebug() << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!";
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
 
 void CoreFunctionWidget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 
 void CoreFunctionWidget::paintGL() {
+    // 绑定帧缓冲对象
+    if (currentFilter != Filter::None) {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    }
+    glEnable(GL_DEPTH_TEST);
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -582,6 +686,30 @@ void CoreFunctionWidget::paintGL() {
         glUniformMatrix4fv(cubeShaderProgram.uniformLocation("projection"), 1, GL_FALSE, projection.data());
         glBindVertexArray(cube2VAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    }
+
+    if (currentFilter != Filter::None) {
+        // 解绑帧缓冲对象
+        glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
+        // 清除默认帧缓冲
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // 选择后期处理着色器
+        switch (currentFilter) {
+            case Filter::Invert:
+                invertShaderProgram.bind();
+                break;
+            case Filter::Gray:
+                grayShaderProgram.bind();
+                break;
+        }
+        {
+            glBindVertexArray(quadVAO);
+            glDisable(GL_DEPTH_TEST);
+            glBindTexture(GL_TEXTURE_2D, textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
     }
 }
 

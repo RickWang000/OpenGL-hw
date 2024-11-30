@@ -24,6 +24,12 @@ enum CollisionFace {
     COLLISION_Z
 };
 
+enum class Filter {
+    None,
+    Invert,
+    Gray
+};
+
 class CoreFunctionWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
@@ -48,6 +54,7 @@ private:
     void setupTextures();
     void setupVertices();
     void setupCube(GLuint &VAO, GLuint &VBO, float size, QVector3D color);
+    void setupFrameBuffer();
 
     GLuint loadCubemap(std::vector<std::string> faces);
     void loadConfig();
@@ -57,6 +64,11 @@ private:
     QOpenGLShaderProgram shaderProgram;
     QOpenGLShaderProgram skyboxShaderProgram;
     QOpenGLShaderProgram cubeShaderProgram;
+
+    GLuint quadVAO, quadVBO;
+    GLuint fbo, rbo, textureColorBuffer;
+    QOpenGLShaderProgram invertShaderProgram;
+    QOpenGLShaderProgram grayShaderProgram;
 
     GLuint skyboxVAO, skyboxVBO, skyboxTexture;
 
@@ -81,6 +93,8 @@ private:
     QTimer updateTimer;
 
     AABB boundaryAABB;
+
+    Filter currentFilter = Filter::None;
 
     Camera cam;
 public:

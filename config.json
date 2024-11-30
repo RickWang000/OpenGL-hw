@@ -13,5 +13,6 @@
     },
     "cube": {
         "velocity": [7.0, 4.0, 6.0]
-    }
+    },
+    "filter": "gray" 
 }

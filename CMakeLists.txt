@@ -59,5 +59,3 @@ target_link_libraries(${PROJECT_NAME} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenG
 # 安装目标
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
-# 安装资源文件
-install(FILES awesomeface.png container.jpg textures.frag textures.vert DESTINATION bin)

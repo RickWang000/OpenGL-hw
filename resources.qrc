@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>awesomeface.png</file>
-        <file>container.jpg</file>
+        <file>res/cube/awesomeface.png</file>
+        <file>res/cube/container.jpg</file>
         <file>res/skybox/right.jpg</file>
         <file>res/skybox/left.jpg</file>
         <file>res/skybox/top.jpg</file>
@@ -9,12 +9,15 @@
         <file>res/skybox/front.jpg</file>
         <file>res/skybox/back.jpg</file>
         
-        <file>textures.frag</file>
-        <file>textures.vert</file>
+        <file>shaders/textures.frag</file>
+        <file>shaders/textures.vert</file>
         <file>shaders/skybox.vert</file>
         <file>shaders/skybox.frag</file>
         <file>shaders/cube.vert</file>
         <file>shaders/cube.frag</file>
+        <file>shaders/invert.vert</file>
+        <file>shaders/invert.frag</file>
+        <file>shaders/gray.frag</file>
 
         <file>config.json</file>
     </qresource>
