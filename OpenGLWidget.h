@@ -9,6 +9,7 @@
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 #include <QKeyEvent>
+#include <QTimer>
 #include "Camera.h"
 
 
@@ -45,6 +46,12 @@ private:
     GLuint skyboxVAO, skyboxVBO, skyboxTexture;
     GLuint cube1VAO, cube1VBO;
     GLuint cube2VAO, cube2VBO;
+
+    QVector3D cubePosition;
+    QVector3D cubeVelocity;
+    float deltaTime;
+    QElapsedTimer timer;
+    QTimer updateTimer;
 
     Camera cam;
 public:

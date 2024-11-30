@@ -5,6 +5,11 @@
 CoreFunctionWidget::CoreFunctionWidget(QWidget* parent) : QOpenGLWidget(parent)
 {
     this->setFocusPolicy(Qt::StrongFocus);
+    // 初始化定时器
+    timer.start();
+
+    connect(&updateTimer, &QTimer::timeout, this, [this]() { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
+    updateTimer.start(16); // 每16毫秒触发一次，相当于60帧每秒
 }
 
 CoreFunctionWidget::~CoreFunctionWidget()
@@ -19,11 +24,14 @@ void CoreFunctionWidget::initializeGL() {
     this->initializeOpenGLFunctions();
 
     glEnable(GL_DEPTH_TEST);
-    this->cam.set_initial_distance_ratio(4.0);
+    this->cam.set_initial_distance_ratio(8.0);
 
     setupShaders();
     setupTextures();
     setupVertices();
+    
+    timer.start(); // 初始化计时器
+    cubeVelocity = QVector3D(5.0f, 3.5f, 7.5f); // 初始化速度
 }
 
 void CoreFunctionWidget::setupShaders() {
@@ -356,6 +364,20 @@ void CoreFunctionWidget::paintGL() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // 计算时间差
+    qint64 currentTime = timer.elapsed();
+    deltaTime = currentTime / 1000.0f;
+    timer.restart();
+
+    // 更新立方体位置
+    cubePosition += cubeVelocity * deltaTime;
+
+    // 检查边界并反转速度
+    if (cubePosition.x() > 5.0f || cubePosition.x() < -5.0f) cubeVelocity.setX(-cubeVelocity.x());
+    if (cubePosition.y() > 5.0f || cubePosition.y() < -5.0f) cubeVelocity.setY(-cubeVelocity.y());
+    if (cubePosition.z() > 5.0f || cubePosition.z() < -5.0f) cubeVelocity.setZ(-cubeVelocity.z());
+
+
     shaderProgram.bind();
     {
         // bind textures on corresponding texture units
@@ -368,6 +390,7 @@ void CoreFunctionWidget::paintGL() {
         glBindVertexArray(VAO);
         // set uniform mats
         QMatrix4x4 model_mat; // identity
+        model_mat.translate(cubePosition); // 使用更新后的位置
         glUniformMatrix4fv(shaderProgram.uniformLocation("model"), 1, GL_FALSE, model_mat.data());
         QMatrix4x4 camera_mat = this->cam.get_camera_matrix();
         glUniformMatrix4fv(shaderProgram.uniformLocation("view"), 1, GL_FALSE, camera_mat.data());
@@ -454,10 +477,10 @@ void CoreFunctionWidget::paintGL() {
 
 void CoreFunctionWidget::keyPressEvent(QKeyEvent* e) {
     if (e->key() == Qt::Key_A) {
-        this->cam.translate_left(-0.2);
+        this->cam.translate_left(0.2);
     }
     else if (e->key() == Qt::Key_D) {
-        this->cam.translate_left(0.2);
+        this->cam.translate_left(-0.2);
     }
     else if (e->key() == Qt::Key_W) {
         this->cam.translate_up(0.2);
