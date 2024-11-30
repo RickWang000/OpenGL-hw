@@ -13,6 +13,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QRadioButton>
+#include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -23,6 +24,8 @@ public:
     QGroupBox *groupBox;
     QRadioButton *perspectiveButton;
     QRadioButton *orthoButton;
+    QGroupBox *groupBox_2;
+    QTextBrowser *textBrowser;
 
     void setupUi(QWidget *QtOpenGLDemoClass)
     {
@@ -39,6 +42,12 @@ public:
         orthoButton = new QRadioButton(groupBox);
         orthoButton->setObjectName("orthoButton");
         orthoButton->setGeometry(QRect(10, 60, 132, 22));
+        groupBox_2 = new QGroupBox(QtOpenGLDemoClass);
+        groupBox_2->setObjectName("groupBox_2");
+        groupBox_2->setGeometry(QRect(720, 180, 161, 481));
+        textBrowser = new QTextBrowser(groupBox_2);
+        textBrowser->setObjectName("textBrowser");
+        textBrowser->setGeometry(QRect(10, 20, 141, 451));
 
         retranslateUi(QtOpenGLDemoClass);
 
@@ -51,6 +60,7 @@ public:
         groupBox->setTitle(QCoreApplication::translate("QtOpenGLDemoClass", "Projection", nullptr));
         perspectiveButton->setText(QCoreApplication::translate("QtOpenGLDemoClass", "Perspective", nullptr));
         orthoButton->setText(QCoreApplication::translate("QtOpenGLDemoClass", "Ortho", nullptr));
+        groupBox_2->setTitle(QCoreApplication::translate("QtOpenGLDemoClass", "Collision Detect", nullptr));
     } // retranslateUi
 
 };

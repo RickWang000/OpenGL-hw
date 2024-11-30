@@ -434,11 +434,9 @@ void CoreFunctionWidget::paintGL() {
     // 检查动态立方体与静态立方体1的碰撞
     CollisionFace collisionFace = checkCollision(cubeAABB, cube1AABB);
     if (collisionFace != NO_COLLISION) {
-        qDebug() << "Collision with cube1 detected!";
-        qDebug() << "Dynamic Cube Position: " << cubePosition << ", Size: 1.0";
-        qDebug() << "Cube1 Position: " << cube1Position << ", Size: " << cube1Size;
-        qDebug() << "Collision Box A: min(" << cubeAABB.min.x() << "," << cubeAABB.min.y() << "," << cubeAABB.min.z() << "), max(" << cubeAABB.max.x() << "," << cubeAABB.max.y() << "," << cubeAABB.max.z() << ")";
-        qDebug() << "Collision Box B: min(" << cube1AABB.min.x() << "," << cube1AABB.min.y() << "," << cube1AABB.min.z() << "), max(" << cube1AABB.max.x() << "," << cube1AABB.max.y() << "," << cube1AABB.max.z() << ")";
+        QString message = QString("Cube: 1!");
+        emit collisionDetected(message);
+
         if (collisionFace == COLLISION_X) {
             cubeVelocity.setX(-cubeVelocity.x());
         } else if (collisionFace == COLLISION_Y) {
@@ -453,11 +451,9 @@ void CoreFunctionWidget::paintGL() {
     // 检查动态立方体与静态立方体2的碰撞
     collisionFace = checkCollision(cubeAABB, cube2AABB);
     if (collisionFace != NO_COLLISION) {
-        qDebug() << "Collision with cube2 detected!";
-        qDebug() << "Dynamic Cube Position: " << cubePosition << ", Size: 1.0";
-        qDebug() << "Cube2 Position: " << cube2Position << ", Size: " << cube2Size;
-        qDebug() << "Collision Box A: min(" << cubeAABB.min.x() << "," << cubeAABB.min.y() << "," << cubeAABB.min.z() << "), max(" << cubeAABB.max.x() << "," << cubeAABB.max.y() << "," << cubeAABB.max.z() << ")";
-        qDebug() << "Collision Box B: min(" << cube2AABB.min.x() << "," << cube2AABB.min.y() << "," << cube2AABB.min.z() << "), max(" << cube2AABB.max.x() << "," << cube2AABB.max.y() << "," << cube2AABB.max.z() << ")";
+        QString message = QString("Cube: 2!");
+        emit collisionDetected(message);
+
         if (collisionFace == COLLISION_X) {
             cubeVelocity.setX(-cubeVelocity.x());
         } else if (collisionFace == COLLISION_Y) {
@@ -471,19 +467,22 @@ void CoreFunctionWidget::paintGL() {
 
      // 检查与边界的碰撞
     if (cubeAABB.min.x() < boundaryAABB.min.x() || cubeAABB.max.x() > boundaryAABB.max.x()) {
-        qDebug() << "Collision with boundary detected on X axis!";
+        // QString message = "Boundary: X axis!";
+        // emit collisionDetected(message);
         cubeVelocity.setX(-cubeVelocity.x());
         // 调整位置以避免下一帧再次检测到碰撞
         cubePosition.setX(cubePosition.x() + cubeVelocity.x() * deltaTime);
     }
     if (cubeAABB.min.y() < boundaryAABB.min.y() || cubeAABB.max.y() > boundaryAABB.max.y()) {
-        qDebug() << "Collision with boundary detected on Y axis!";
+        // QString message = "Boundary: Y axis!";
+        // emit collisionDetected(message);
         cubeVelocity.setY(-cubeVelocity.y());
         // 调整位置以避免下一帧再次检测到碰撞
         cubePosition.setY(cubePosition.y() + cubeVelocity.y() * deltaTime);
     }
     if (cubeAABB.min.z() < boundaryAABB.min.z() || cubeAABB.max.z() > boundaryAABB.max.z()) {
-        qDebug() << "Collision with boundary detected on Z axis!";
+        // QString message = "Boundary: Z axis!";
+        // emit collisionDetected(message);
         cubeVelocity.setZ(-cubeVelocity.z());
         // 调整位置以避免下一帧再次检测到碰撞
         cubePosition.setZ(cubePosition.z() + cubeVelocity.z() * deltaTime);

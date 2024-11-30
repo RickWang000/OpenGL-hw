@@ -33,6 +33,7 @@ public:
 
 signals:
     void projection_change();
+    void collisionDetected(const QString& message);
 protected:
     virtual void initializeGL();
     virtual void resizeGL(int w, int h);

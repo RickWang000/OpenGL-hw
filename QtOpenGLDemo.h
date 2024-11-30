@@ -20,6 +20,7 @@ public slots:
     void set_ortho();
     void set_persective();
     void set_projection_button();
+    void updateCollisionInfo(const QString& message);
 
 private:
     Ui::QtOpenGLDemoClass *ui;

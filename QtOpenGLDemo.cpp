@@ -13,6 +13,7 @@ QtOpenGLDemo::QtOpenGLDemo(QWidget *parent)
     connect(this->ui->perspectiveButton, SIGNAL(clicked()), this, SLOT(set_persective()));
     connect(this->ui->orthoButton, SIGNAL(clicked()), this, SLOT(set_ortho()));
     connect(this->core_widget, SIGNAL(projection_change()), this, SLOT(set_projection_button()));
+    connect(this->core_widget, SIGNAL(collisionDetected(const QString&)), this, SLOT(updateCollisionInfo(const QString&)));
 }
 
 QtOpenGLDemo::~QtOpenGLDemo()
@@ -37,4 +38,8 @@ void QtOpenGLDemo::set_ortho() {
 void QtOpenGLDemo::set_persective() {
     this->core_widget->use_perspective = true;
     this->core_widget->update();
+}
+
+void QtOpenGLDemo::updateCollisionInfo(const QString& message) {
+    this->ui->textBrowser->append(message);
 }
