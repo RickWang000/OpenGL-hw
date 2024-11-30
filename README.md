@@ -71,3 +71,6 @@
 - 使用Qt C++插件配置Qt版本
 - 使用CMake插件配置编译环境
 - 使用CMake工具编译项目
+
+## 参考资料
+- [LearnOpenGL CN](https://learnopengl-cn.github.io/)
